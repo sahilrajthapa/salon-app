@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { RetentionService } from './retention.service';
 import { RetentionDto } from './retention.dto';
 
@@ -7,7 +7,9 @@ export class RetentionController {
   constructor(private readonly retentionService: RetentionService) {}
 
   @Get()
-  async getReport(): Promise<RetentionDto[]> {
-    return this.retentionService.getReport();
+  async getReport(
+    @Query('referenceMonth') referenceMonth: string,
+  ): Promise<RetentionDto[]> {
+    return this.retentionService.getReport(referenceMonth);
   }
 }

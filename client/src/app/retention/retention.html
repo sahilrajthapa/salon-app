@@ -1,3 +1,13 @@
+<form [formGroup]="form">
+    <label>Reference Month</label>
+    <input
+        type="month"
+        min="2022-01"
+        max="2025-12"
+        formControlName="referenceMonth"
+    >
+
+</form>
 
 @if (report$ | async; as report) {
   <table>

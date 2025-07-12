@@ -46,7 +46,8 @@ const MOCK_RETENTION_DATA: RetentionDto[] = [
 
 @Injectable()
 export class RetentionService {
-  async getReport(): Promise<RetentionDto[]> {
+  async getReport(referenceMonth: string = '2022-01'): Promise<RetentionDto[]> {
+    console.log('referenceMonth', referenceMonth);
     return MOCK_RETENTION_DATA;
   }
 }

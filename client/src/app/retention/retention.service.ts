@@ -10,7 +10,11 @@ import { environment } from '../../environment';
 export class RetentionService {
   constructor(private http: HttpClient) {}
 
-  getReport(): Observable<IRetention[]> {
-    return this.http.get<IRetention[]>(`${environment.API_URL}/retention`);
+  getReport(params: { referenceMonth: string }): Observable<IRetention[]> {
+    return this.http.get<IRetention[]>(`${environment.API_URL}/retention`, {
+      params: {
+        referenceMonth: params.referenceMonth,
+      },
+    });
   }
 }
