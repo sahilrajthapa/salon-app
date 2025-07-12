@@ -1,0 +1,27 @@
+
+@if (report$ | async; as report) {
+  <table>
+    <thead>
+      <tr>
+        <th>Employee</th>
+        <th>Reference</th>
+        @for (retentionMonth of report[0].retentionMonths; track retentionMonth.month) {
+          <th>{{ retentionMonth.month }}</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of report; track row.employeeId) {
+        <tr>
+          <td>{{ row.employeeName }}</td>
+          <td>
+            {{ row.referenceMonth.percentage }}% ({{ row.referenceMonth.clients }})
+          </td>
+          @for (retentionMonth of row.retentionMonths; track retentionMonth.month) {
+            <td>{{retentionMonth.percentage}}%({{ retentionMonth.clients}} clients  )</td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+}
