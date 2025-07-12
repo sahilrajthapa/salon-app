@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { RetentionDto } from './retention.dto';
+import { Appointment } from './entities/appointment.entity';
 
 const MOCK_RETENTION_DATA: RetentionDto[] = [
   {
@@ -46,8 +49,20 @@ const MOCK_RETENTION_DATA: RetentionDto[] = [
 
 @Injectable()
 export class RetentionService {
+  constructor(
+    @InjectRepository(Appointment)
+    private appointmentRepo: Repository<Appointment>,
+  ) {}
+
   async getReport(referenceMonth: string = '2022-01'): Promise<RetentionDto[]> {
     console.log('referenceMonth', referenceMonth);
     return MOCK_RETENTION_DATA;
+  }
+
+  async getAppointments(): Promise<Appointment[]> {
+    return this.appointmentRepo.find({
+      relations: ['client', 'employee'],
+      take: 5,
+    });
   }
 }

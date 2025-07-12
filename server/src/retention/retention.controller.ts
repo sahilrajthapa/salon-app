@@ -12,4 +12,9 @@ export class RetentionController {
   ): Promise<RetentionDto[]> {
     return this.retentionService.getReport(referenceMonth);
   }
+
+  @Get('appointments-check')
+  getAppointments() {
+    return this.retentionService.getAppointments();
+  }
 }
