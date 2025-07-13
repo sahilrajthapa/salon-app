@@ -15,8 +15,10 @@
       <tr>
         <th>Employee</th>
         <th>Reference</th>
-        @for (retentionMonth of report[0].retentionMonths; track retentionMonth.month) {
-          <th>{{ retentionMonth.month }}</th>
+        @if (report.length > 0) {
+           @for (retentionMonth of report[0].retentionMonths; track retentionMonth.month) {
+              <th>{{ retentionMonth.month }}</th>
+            }
         }
       </tr>
     </thead>
