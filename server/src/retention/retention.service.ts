@@ -148,7 +148,7 @@ export class RetentionService {
       .filter((r): r is RetentionDto => r !== null);
   }
 
-  async getReport(referenceMonth: string = '2022-01'): Promise<RetentionDto[]> {
+  async getReport(referenceMonth: string): Promise<RetentionDto[]> {
     const [firstVisits, employees] = await Promise.all([
       this.getClientsFirstVisits(referenceMonth),
       this.employeeRepo.find(),
