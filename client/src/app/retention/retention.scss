@@ -1,0 +1,60 @@
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 30px;
+
+  label {
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #434e58;
+  }
+
+  input {
+    width: 200px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #434e58;
+  }
+}
+
+.table-container {
+  overflow-x: auto;
+  width: calc(100vw - 40px);
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #434e58;
+
+  thead {
+    background-color: #e88565;
+
+    th {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: left;
+      font-weight: 600;
+      white-space: nowrap;
+      color: #fff;
+    }
+  }
+
+  tbody {
+    tr {
+      &:nth-child(even) {
+        background-color: #fafafa;
+      }
+
+      td {
+        padding: 10px;
+        border: 1px solid #ddd;
+        white-space: nowrap;
+      }
+    }
+  }
+}
