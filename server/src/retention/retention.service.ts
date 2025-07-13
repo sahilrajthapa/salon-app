@@ -3,60 +3,174 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RetentionDto } from './retention.dto';
 import { Appointment } from './entities/appointment.entity';
-
-const MOCK_RETENTION_DATA: RetentionDto[] = [
-  {
-    employeeId: 1,
-    employeeName: 'Employee 1',
-    referenceMonth: {
-      clients: 100,
-      percentage: 100,
-    },
-    retentionMonths: [
-      {
-        month: '2022-01',
-        clients: 63,
-        percentage: 63,
-      },
-      {
-        month: '2022-02',
-        clients: 40,
-        percentage: 40,
-      },
-    ],
-  },
-  {
-    employeeId: 2,
-    employeeName: 'Employee 2',
-    referenceMonth: {
-      clients: 200,
-      percentage: 200,
-    },
-    retentionMonths: [
-      {
-        month: '2022-01',
-        clients: 126,
-        percentage: 63,
-      },
-      {
-        month: '2022-02',
-        clients: 80,
-        percentage: 40,
-      },
-    ],
-  },
-];
+import { Employee } from './entities/employee.entity';
+import { IClientCount, IFirstVisit, IRetentionData } from './retention.type';
 
 @Injectable()
 export class RetentionService {
   constructor(
     @InjectRepository(Appointment)
     private appointmentRepo: Repository<Appointment>,
+    @InjectRepository(Employee)
+    private employeeRepo: Repository<Employee>,
   ) {}
 
+  /**
+   * Fetches the earliest visit for clients in the given reference month.
+   *
+   * @param referenceMonth - The month to evaluate, in 'YYYY-MM' format.
+   * @returns List of clients with associated employees in the first visit.
+   */
+  private async getClientsFirstVisits(
+    referenceMonth: string,
+  ): Promise<IFirstVisit[]> {
+    const subquery = this.appointmentRepo
+      .createQueryBuilder('appointment')
+      .select(['appointment.client_id', 'MIN(appointment.date) AS firstDate'])
+      .where(`strftime('%Y-%m', appointment.date) = :referenceMonth`, {
+        referenceMonth,
+      })
+      .groupBy('appointment.client_id');
+
+    return this.appointmentRepo
+      .createQueryBuilder('appointment')
+      .select([
+        'appointment.client_id AS clientId',
+        'appointment.employee_id AS employeeId',
+      ])
+      .innerJoin(
+        `(${subquery.getQuery()})`,
+        'first_visits',
+        'appointment.client_id = first_visits.client_id AND appointment.date = first_visits.firstDate',
+      )
+      .setParameters(subquery.getParameters())
+      .getRawMany();
+  }
+
+  /**
+   * Aggregates the total number of first-time clients handled by each employee.
+   *
+   * @param firstVisits - List of clients with associated employees in the first visit.
+   * @returns List of employees with the total number of first-time clients they handled.
+   */
+  private aggregateClientCountsByEmployee(
+    firstVisits: IFirstVisit[],
+  ): IClientCount[] {
+    const counts = firstVisits.reduce(
+      (acc, { employeeId }) => {
+        acc[employeeId] = (acc[employeeId] || 0) + 1;
+        return acc;
+      },
+      {} as Record<number, number>,
+    );
+
+    return Object.entries(counts).map(([employeeId, totalClients]) => ({
+      employeeId: Number(employeeId),
+      totalClients,
+    }));
+  }
+
+  /**
+   * Fetches all subsequent monthly appointments for clients after their first visit.
+   *
+   * @param firstVisits - List of clients with associated employees in the first visit.
+   * @param referenceMonth - The month to evaluate, in 'YYYY-MM' format.
+   * @returns List of client visits in the subsequent months.
+   */
+  private async getClientRetentionAfterReferenceMonth(
+    firstVisits: IFirstVisit[],
+    referenceMonth: string,
+  ): Promise<IRetentionData[]> {
+    const clientIds = firstVisits.map((v) => v.clientId);
+
+    return this.appointmentRepo
+      .createQueryBuilder('appointment')
+      .select([
+        'appointment.client_id AS clientId',
+        `strftime('%Y-%m', appointment.date) AS retentionMonth`,
+      ])
+      .where('appointment.client_id IN (:...clientIds)', { clientIds })
+      .andWhere(`strftime('%Y-%m', appointment.date) > :referenceMonth`, {
+        referenceMonth,
+      })
+      .groupBy('appointment.client_id, retentionMonth')
+      .getRawMany();
+  }
+
+  private buildReport(
+    employees: Employee[],
+    clientCounts: IClientCount[],
+    firstVisits: IFirstVisit[],
+    retentionData: IRetentionData[],
+  ): RetentionDto[] {
+    return employees
+      .map((employee) => {
+        const employeeStats = clientCounts.find(
+          ({ employeeId }) => employeeId === employee.employeeId,
+        );
+        if (!employeeStats) return null;
+
+        const employeeRetentions = retentionData.filter((rd) =>
+          firstVisits.some(
+            ({ clientId, employeeId }) =>
+              clientId === rd.clientId && employeeId === employee.employeeId,
+          ),
+        );
+
+        const retentionCounts: Record<string, number> = {};
+
+        for (const { retentionMonth } of employeeRetentions) {
+          retentionCounts[retentionMonth] =
+            (retentionCounts[retentionMonth] || 0) + 1;
+        }
+
+        const retentionMonths = Object.entries(retentionCounts)
+          .map(([month, count]) => ({
+            month,
+            clients: count,
+            percentage:
+              Math.round((count / employeeStats.totalClients) * 1000) / 10,
+          }))
+          .sort(
+            (a, b) => new Date(a.month).getTime() - new Date(b.month).getTime(),
+          );
+
+        return {
+          employeeId: employee.employeeId,
+          employeeName: `${employee.firstName} ${employee.lastName}`,
+          referenceMonth: {
+            clients: employeeStats.totalClients,
+            percentage: 100,
+          },
+          retentionMonths,
+        };
+      })
+      .filter((r): r is RetentionDto => r !== null);
+  }
+
   async getReport(referenceMonth: string = '2022-01'): Promise<RetentionDto[]> {
-    console.log('referenceMonth', referenceMonth);
-    return MOCK_RETENTION_DATA;
+    const [firstVisits, employees] = await Promise.all([
+      this.getClientsFirstVisits(referenceMonth),
+      this.employeeRepo.find(),
+    ]);
+
+    if (!firstVisits.length || !employees.length) return [];
+
+    const clientCounts = this.aggregateClientCountsByEmployee(firstVisits);
+
+    if (!clientCounts.length) return [];
+
+    const retentionData = await this.getClientRetentionAfterReferenceMonth(
+      firstVisits,
+      referenceMonth,
+    );
+
+    return this.buildReport(
+      employees,
+      clientCounts,
+      firstVisits,
+      retentionData,
+    );
   }
 
   async getAppointments(): Promise<Appointment[]> {
