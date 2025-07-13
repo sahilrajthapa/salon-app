@@ -1,0 +1,13 @@
+{
+  "name": "salon-app",
+  "version": "1.0.0",
+    "workspaces": [
+    "apps/*"
+  ],
+  "devDependencies": {
+    "lerna": "^8.2.3"
+  },
+  "scripts": {
+    "start": "lerna run start"
+  }
+}

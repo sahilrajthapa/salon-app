@@ -1,21 +1,17 @@
 # salon-app
 
-## Start Server
+Follow these steps to set up and run the applications:
 
-The server listens on **http://localhost:3000**
+1. **Install dependencies:**
 
-```bash
-cd server
-npm i
-npm start
-```
+   ```bash
+   npm install
+   ```
 
-## Start Client
+2. **Start the apps:**
+   ```bash
+   npm start
+   ```
 
-The client listens on **http://localhost:4200**
-
-```bash
-cd client
-npm i
-npm start
-```
+- The server will be available at: [http://localhost:3000](http://localhost:3000)
+- The client will be available at: [http://localhost:4200](http://localhost:4200)
