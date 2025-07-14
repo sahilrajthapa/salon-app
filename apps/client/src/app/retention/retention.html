@@ -18,7 +18,7 @@
         <th>Reference</th>
         @if (report.length > 0) {
            @for (retentionMonth of report[0].retentionMonths; track retentionMonth.month) {
-              <th>{{ retentionMonth.month }}</th>
+              <th>{{ retentionMonth.month  | date: 'MMM yyyy' }}</th>
             }
         }
       </tr>

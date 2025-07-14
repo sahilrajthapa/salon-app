@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { debounceTime, Observable, startWith, switchMap } from 'rxjs';
 import { RetentionService } from './retention.service';
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, DatePipe } from '@angular/common';
 import {
   FormControl,
   FormGroup,
@@ -11,7 +11,7 @@ import {
 
 @Component({
   selector: 'app-retention',
-  imports: [AsyncPipe, ReactiveFormsModule],
+  imports: [AsyncPipe, DatePipe, ReactiveFormsModule],
   templateUrl: './retention.html',
   styleUrl: './retention.scss',
 })
@@ -31,7 +31,7 @@ export class Retention {
       switchMap((params) => {
         const referenceMonth = params.referenceMonth ?? '';
         return this.reportService.getReport({ referenceMonth });
-      })
+      }),
     );
   }
 }
