@@ -4,11 +4,13 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { Client } from './client.entity';
 import { Employee } from './employee.entity';
 
 @Entity('appointments')
+@Index('idx_appointments_client_date', ['client', 'date'])
 export class Appointment {
   @PrimaryGeneratedColumn({ name: 'appointment_id' })
   appointmentId: number;
