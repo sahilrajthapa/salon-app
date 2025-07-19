@@ -104,7 +104,7 @@ export class RetentionService {
   private buildReport(
     employees: Employee[],
     clientCounts: IClientCount[],
-    firstVisits: IFirstVisit[],
+    firstVisitMap: Record<number, number>,
     retentionData: IRetentionData[],
   ): RetentionDto[] {
     return employees
@@ -114,11 +114,8 @@ export class RetentionService {
         );
         if (!employeeStats) return null;
 
-        const employeeRetentions = retentionData.filter((rd) =>
-          firstVisits.some(
-            ({ clientId, employeeId }) =>
-              clientId === rd.clientId && employeeId === employee.employeeId,
-          ),
+        const employeeRetentions = retentionData.filter(
+          (rd) => firstVisitMap[rd.clientId] === employee.employeeId,
         );
 
         const retentionCounts: Record<string, number> = {};
@@ -169,10 +166,18 @@ export class RetentionService {
       referenceMonth,
     );
 
+    const firstVisitsMap = firstVisits.reduce(
+      (acc, { clientId, employeeId }) => {
+        acc[clientId] = employeeId;
+        return acc;
+      },
+      {} as Record<number, number>,
+    );
+
     return this.buildReport(
       employees,
       clientCounts,
-      firstVisits,
+      firstVisitsMap,
       retentionData,
     );
   }
