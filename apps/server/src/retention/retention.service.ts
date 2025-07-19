@@ -5,6 +5,7 @@ import { RetentionDto } from './retention.dto';
 import { Appointment } from './entities/appointment.entity';
 import { Employee } from './entities/employee.entity';
 import { IClientCount, IFirstVisit, IRetentionData } from './retention.type';
+import { getNextMonth } from './util';
 
 @Injectable()
 export class RetentionService {
@@ -24,11 +25,15 @@ export class RetentionService {
   private async getClientsFirstVisits(
     referenceMonth: string,
   ): Promise<IFirstVisit[]> {
+    const startDate = `${referenceMonth}-01`;
+    const endDate = getNextMonth(referenceMonth);
+
     const subquery = this.appointmentRepo
       .createQueryBuilder('appointment')
       .select(['appointment.client_id', 'MIN(appointment.date) AS firstDate'])
-      .where(`strftime('%Y-%m', appointment.date) = :referenceMonth`, {
-        referenceMonth,
+      .where('appointment.date >= :startDate AND appointment.date < :endDate', {
+        startDate,
+        endDate,
       })
       .groupBy('appointment.client_id');
 
@@ -82,6 +87,7 @@ export class RetentionService {
     referenceMonth: string,
   ): Promise<IRetentionData[]> {
     const clientIds = firstVisits.map((v) => v.clientId);
+    const startDate = getNextMonth(referenceMonth);
 
     return this.appointmentRepo
       .createQueryBuilder('appointment')
@@ -90,9 +96,7 @@ export class RetentionService {
         `strftime('%Y-%m', appointment.date) AS retentionMonth`,
       ])
       .where('appointment.client_id IN (:...clientIds)', { clientIds })
-      .andWhere(`strftime('%Y-%m', appointment.date) > :referenceMonth`, {
-        referenceMonth,
-      })
+      .andWhere('appointment.date >= :startDate', { startDate })
       .groupBy('appointment.client_id, retentionMonth')
       .getRawMany();
   }
