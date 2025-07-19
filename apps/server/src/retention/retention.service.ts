@@ -53,29 +53,6 @@ export class RetentionService {
   }
 
   /**
-   * Aggregates the total number of first-time clients handled by each employee.
-   *
-   * @param firstVisits - List of clients with associated employees in the first visit.
-   * @returns List of employees with the total number of first-time clients they handled.
-   */
-  private aggregateClientCountsByEmployee(
-    firstVisits: IFirstVisit[],
-  ): IClientCount[] {
-    const counts = firstVisits.reduce(
-      (acc, { employeeId }) => {
-        acc[employeeId] = (acc[employeeId] || 0) + 1;
-        return acc;
-      },
-      {} as Record<number, number>,
-    );
-
-    return Object.entries(counts).map(([employeeId, totalClients]) => ({
-      employeeId: Number(employeeId),
-      totalClients,
-    }));
-  }
-
-  /**
    * Fetches all subsequent monthly appointments for clients after their first visit.
    *
    * @param firstVisits - List of clients with associated employees in the first visit.
@@ -103,50 +80,56 @@ export class RetentionService {
 
   private buildReport(
     employees: Employee[],
-    clientCounts: IClientCount[],
+    firstTotalClientsMap: Record<number, number>,
     firstVisitMap: Record<number, number>,
     retentionData: IRetentionData[],
   ): RetentionDto[] {
-    return employees
-      .map((employee) => {
-        const employeeStats = clientCounts.find(
-          ({ employeeId }) => employeeId === employee.employeeId,
-        );
-        if (!employeeStats) return null;
+    return employees.map((employee) => {
+      const totalClients = firstTotalClientsMap[employee.employeeId];
 
-        const employeeRetentions = retentionData.filter(
-          (rd) => firstVisitMap[rd.clientId] === employee.employeeId,
-        );
-
-        const retentionCounts: Record<string, number> = {};
-
-        for (const { retentionMonth } of employeeRetentions) {
-          retentionCounts[retentionMonth] =
-            (retentionCounts[retentionMonth] || 0) + 1;
-        }
-
-        const retentionMonths = Object.entries(retentionCounts)
-          .map(([month, count]) => ({
-            month,
-            clients: count,
-            percentage:
-              Math.round((count / employeeStats.totalClients) * 1000) / 10,
-          }))
-          .sort(
-            (a, b) => new Date(a.month).getTime() - new Date(b.month).getTime(),
-          );
-
+      if (!totalClients) {
         return {
           employeeId: employee.employeeId,
           employeeName: `${employee.firstName} ${employee.lastName}`,
           referenceMonth: {
-            clients: employeeStats.totalClients,
-            percentage: 100,
+            clients: 0,
+            percentage: 0,
           },
-          retentionMonths,
+          retentionMonths: [],
         };
-      })
-      .filter((r): r is RetentionDto => r !== null);
+      }
+
+      const employeeRetentions = retentionData.filter(
+        (rd) => firstVisitMap[rd.clientId] === employee.employeeId,
+      );
+
+      const retentionCounts: Record<string, number> = {};
+
+      for (const { retentionMonth } of employeeRetentions) {
+        retentionCounts[retentionMonth] =
+          (retentionCounts[retentionMonth] || 0) + 1;
+      }
+
+      const retentionMonths = Object.entries(retentionCounts)
+        .map(([month, count]) => ({
+          month,
+          clients: count,
+          percentage: Math.round((count / totalClients) * 1000) / 10,
+        }))
+        .sort(
+          (a, b) => new Date(a.month).getTime() - new Date(b.month).getTime(),
+        );
+
+      return {
+        employeeId: employee.employeeId,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        referenceMonth: {
+          clients: totalClients,
+          percentage: 100,
+        },
+        retentionMonths,
+      };
+    });
   }
 
   async getReport(referenceMonth: string): Promise<RetentionDto[]> {
@@ -157,27 +140,27 @@ export class RetentionService {
 
     if (!firstVisits.length || !employees.length) return [];
 
-    const clientCounts = this.aggregateClientCountsByEmployee(firstVisits);
-
-    if (!clientCounts.length) return [];
-
     const retentionData = await this.getClientRetentionAfterReferenceMonth(
       firstVisits,
       referenceMonth,
     );
 
-    const firstVisitsMap = firstVisits.reduce(
-      (acc, { clientId, employeeId }) => {
-        acc[clientId] = employeeId;
-        return acc;
-      },
-      {} as Record<number, number>,
-    );
+    // maps a client to their first employee
+    const firstVisitMap: Record<number, number> = {};
+
+    //  maps an employee to the total number of first-time clients
+    const firstTotalClientsMap: Record<number, number> = {};
+
+    for (const { clientId, employeeId } of firstVisits) {
+      firstVisitMap[clientId] = employeeId;
+      firstTotalClientsMap[employeeId] =
+        (firstTotalClientsMap[employeeId] || 0) + 1;
+    }
 
     return this.buildReport(
       employees,
-      clientCounts,
-      firstVisitsMap,
+      firstTotalClientsMap,
+      firstVisitMap,
       retentionData,
     );
   }
