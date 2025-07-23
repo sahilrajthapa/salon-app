@@ -4,7 +4,13 @@ import { Repository } from 'typeorm';
 import { RetentionDto } from './retention.dto';
 import { Appointment } from './entities/appointment.entity';
 import { Employee } from './entities/employee.entity';
-import { IClientCount, IFirstVisit, IRetentionData } from './retention.type';
+import {
+  IFirstTotalClientsMap,
+  IFirstVisit,
+  IFirstVisitMap,
+  IMonthRetentionMap,
+  IRetentionData,
+} from './retention.type';
 import { getNextMonth } from './util';
 
 @Injectable()
@@ -80,8 +86,8 @@ export class RetentionService {
 
   private buildReport(
     employees: Employee[],
-    firstTotalClientsMap: Record<number, number>,
-    firstVisitMap: Record<number, number>,
+    firstTotalClientsMap: IFirstTotalClientsMap,
+    firstVisitMap: IFirstVisitMap,
     retentionData: IRetentionData[],
   ): RetentionDto[] {
     return employees.map((employee) => {
@@ -103,7 +109,7 @@ export class RetentionService {
         (rd) => firstVisitMap[rd.clientId] === employee.employeeId,
       );
 
-      const retentionCounts: Record<string, number> = {};
+      const retentionCounts: IMonthRetentionMap = {};
 
       for (const { retentionMonth } of employeeRetentions) {
         retentionCounts[retentionMonth] =
@@ -146,10 +152,10 @@ export class RetentionService {
     );
 
     // maps a client to their first employee
-    const firstVisitMap: Record<number, number> = {};
+    const firstVisitMap: IFirstVisitMap = {};
 
     //  maps an employee to the total number of first-time clients
-    const firstTotalClientsMap: Record<number, number> = {};
+    const firstTotalClientsMap: IFirstTotalClientsMap = {};
 
     for (const { clientId, employeeId } of firstVisits) {
       firstVisitMap[clientId] = employeeId;

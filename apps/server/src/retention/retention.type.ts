@@ -12,3 +12,14 @@ export interface IRetentionData {
   clientId: number;
   retentionMonth: string;
 }
+
+export interface IFirstVisitMap {
+  [clientId: number]: number; // employeeId
+}
+export interface IFirstTotalClientsMap {
+  [employeeId: number]: number; // totalClients
+}
+
+export interface IMonthRetentionMap {
+  [month: string]: number; // count of clients retained in that month
+}
