@@ -9,18 +9,32 @@
 
 </form>
 
+@if (isLoading) {
+    <div>
+      Loading...
+    </div>
+}
+
+@if (error) {
+    <div class="error">
+      {{ error }}
+    </div>
+}
+
+
 @if (report$ | async; as report) {
+  @if (report.length > 0) {
    <div class="table-container">
   <table>
     <thead>
       <tr>
         <th>Employee</th>
         <th>Reference</th>
-        @if (report.length > 0) {
+        
            @for (retentionMonth of report[0].retentionMonths; track retentionMonth.month) {
               <th>{{ retentionMonth.month  | date: 'MMM yyyy' }}</th>
             }
-        }
+        
       </tr>
     </thead>
     <tbody>
@@ -38,4 +52,12 @@
     </tbody>
   </table>
   </div>
+ }  
+  @else {
+    @if (!error) {
+    <div>
+      No data available for the selected month.
+    </div>
+   }
+ }
 }

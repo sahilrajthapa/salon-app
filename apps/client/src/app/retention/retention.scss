@@ -21,6 +21,10 @@ form {
   }
 }
 
+.error {
+  color: red;
+}
+
 .table-container {
   overflow-x: auto;
   width: calc(100vw - 40px);

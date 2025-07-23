@@ -1,5 +1,13 @@
 import { Component } from '@angular/core';
-import { debounceTime, Observable, startWith, switchMap } from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  Observable,
+  of,
+  startWith,
+  switchMap,
+  tap,
+} from 'rxjs';
 import { RetentionService } from './retention.service';
 import { AsyncPipe, DatePipe } from '@angular/common';
 import {
@@ -8,6 +16,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { IRetention } from './retention.interface';
 
 @Component({
   selector: 'app-retention',
@@ -20,7 +29,9 @@ export class Retention {
     referenceMonth: new FormControl('2022-01', [Validators.required]),
   });
 
-  report$: Observable<any> = new Observable();
+  report$: Observable<IRetention[]> = new Observable();
+  isLoading = false;
+  error: string = '';
 
   constructor(private reportService: RetentionService) {}
 
@@ -28,9 +39,21 @@ export class Retention {
     this.report$ = this.form.valueChanges.pipe(
       startWith(this.form.value),
       debounceTime(300),
+      tap(() => {
+        this.isLoading = true;
+        this.error = '';
+      }),
       switchMap((params) => {
         const referenceMonth = params.referenceMonth ?? '';
-        return this.reportService.getReport({ referenceMonth });
+        return this.reportService.getReport({ referenceMonth }).pipe(
+          catchError((err) => {
+            this.error = err.error.message;
+            return of([]);
+          }),
+        );
+      }),
+      tap(() => {
+        this.isLoading = false;
       }),
     );
   }
