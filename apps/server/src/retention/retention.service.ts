@@ -28,9 +28,7 @@ export class RetentionService {
    * @param referenceMonth - The month to evaluate, in 'YYYY-MM' format.
    * @returns List of clients with associated employees in the first visit.
    */
-  private async getClientsFirstVisits(
-    referenceMonth: string,
-  ): Promise<IFirstVisit[]> {
+  async getClientsFirstVisits(referenceMonth: string): Promise<IFirstVisit[]> {
     const startDate = `${referenceMonth}-01`;
     const endDate = getNextMonth(referenceMonth);
 
@@ -65,7 +63,7 @@ export class RetentionService {
    * @param referenceMonth - The month to evaluate, in 'YYYY-MM' format.
    * @returns List of client visits in the subsequent months.
    */
-  private async getClientRetentionAfterReferenceMonth(
+  async getClientRetentionAfterReferenceMonth(
     firstVisits: IFirstVisit[],
     referenceMonth: string,
   ): Promise<IRetentionData[]> {
