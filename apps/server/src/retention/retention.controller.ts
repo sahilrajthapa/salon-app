@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { RetentionService } from './retention.service';
 import { RetentionDto } from './retention.dto';
+import { ReferenceMonthValidationPipe } from './validation.pipe';
 
 @Controller('retention')
 export class RetentionController {
@@ -8,12 +9,10 @@ export class RetentionController {
 
   @Get()
   async getReport(
-    @Query('referenceMonth') referenceMonth: string,
+    @Query('referenceMonth', ReferenceMonthValidationPipe)
+    referenceMonth: string,
   ): Promise<RetentionDto[]> {
-    const isValid = /^\d{4}-(0[1-9]|1[0-2])$/.test(referenceMonth);
-    const defaultMonth = isValid ? referenceMonth : '2022-01';
-
-    return this.retentionService.getReport(defaultMonth);
+    return this.retentionService.getReport(referenceMonth);
   }
 
   @Get('appointments-check')
